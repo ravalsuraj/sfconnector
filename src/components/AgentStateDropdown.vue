@@ -27,7 +27,7 @@
             </div>
           </mdb-dropdown-item>
         </mdb-dropdown-menu>
-      <transition>
+      </transition>
     </mdb-dropdown>
    
   </mdb-container>

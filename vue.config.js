@@ -1,7 +1,16 @@
 //Important: Set the env to either development or production to use the appropriate config
 /****************************************/
-const env = "development"; // 'development' or 'production'
+const env = "local"; // 'development' or 'production'
 /*******************************************/
+
+
+const local = {
+    devServer: {
+        port: 9092, // CHANGE YOUR PORT HERE!
+        https: false,
+        disableHostCheck: true,
+    },
+};
 
 const development = {
     publicPath: 'https://104.211.95.34:9443/softphone',
@@ -30,7 +39,8 @@ const production = {
 
 const config = {
     development,
-    production
+    production,
+    local
 };
 
 module.exports = config[env];

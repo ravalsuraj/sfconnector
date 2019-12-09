@@ -7,21 +7,20 @@
       group="success"
       position="bottom center"
       type="success"
-      duration="5000"
+
       width="100%"
     />
     <notifications
       group="warn"
       position="bottom center"
       type="warn"
-      duration="5000"
+
       width="100%"
     />
     <notifications
       group="error"
       position="bottom center"
       type="error"
-      duration="5000"
       width="100%"
     />
   </div>
