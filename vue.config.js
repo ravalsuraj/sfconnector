@@ -1,6 +1,6 @@
 //Important: Set the env to either development or production to use the appropriate config
 /****************************************/
-const env = "local"; // 'development' or 'production'
+const env = "development"; // 'development' or 'production'
 /*******************************************/
 
 

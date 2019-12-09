@@ -3,26 +3,9 @@
     <top-navbar v-if="isAppStateNotLoggedOut"></top-navbar>
     <main-content></main-content>
     <bottom-statusbar></bottom-statusbar>
-    <notifications
-      group="success"
-      position="bottom center"
-      type="success"
-
-      width="100%"
-    />
-    <notifications
-      group="warn"
-      position="bottom center"
-      type="warn"
-
-      width="100%"
-    />
-    <notifications
-      group="error"
-      position="bottom center"
-      type="error"
-      width="100%"
-    />
+    <notifications group="success" position="bottom center" type="success" width="100%" />
+    <notifications group="warn" position="bottom center" type="warn" width="100%" />
+    <notifications group="error" position="bottom center" type="error" width="100%" />
   </div>
 </template>
 
@@ -53,6 +36,10 @@ export default {
   },
   beforeMount() {
     console.log("App(): lifecycle hook called -- beforeMount");
+    if (!this.$store.getters.getTimer("agentStateTimer")) {
+      this.$store.dispatch("addUpTimer", "agentStateTimer");
+
+    }
   },
   mounted() {
     console.log("CTI Connector App mounted");
@@ -76,7 +63,6 @@ export default {
     }
   },
   methods: {
-    
     // getCountryCodeVirtualNumberFromLead(leadId) {
     //   /******************Get Country Code Start**********************/
     //   console.log("getCountryCodeVirtualNumberFromLead() entered function");
@@ -360,6 +346,11 @@ footer {
   .fl_notif {
     bottom: 30px;
   }
+  .fl_notification_bulb {
+  border: rgba(0, 0, 0, 0.25) 1px solid;
+  border-radius: 50%;
+  box-shadow: inset 0px 1px 3px 5px rgba(0, 0, 0, 0.75);
+}
   background: -webkit-gradient(
     left top,
     right top,

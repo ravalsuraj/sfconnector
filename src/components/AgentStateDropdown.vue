@@ -175,11 +175,7 @@ export default {
 </script>
 
 <style scoped>
-.fl_notification_bulb {
-  border: rgba(0, 0, 0, 0.25) 1px solid;
-  border-radius: 50%;
-  box-shadow: inset 0px 1px 3px 5px rgba(0, 0, 0, 0.75);
-}
+
 .fl_scrolling-dropdown {
   height: 150px;
   overflow-y: scroll;

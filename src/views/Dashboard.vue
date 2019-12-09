@@ -1,7 +1,7 @@
 <template>
   <div class="h-75 d-flex flex-column align-items-center justify-content-center">
     <h3 class="grey-text mb-4 pb-4 noselect">Waiting for calls</h3>
-
+  
     <mdb-alert @closeAlert="hideAlert" dismiss :color="alertBanner.color" v-if="alertBanner.show">
       <strong>Warning!</strong>
       {{alertBanner.message}}
@@ -10,14 +10,14 @@
 </template>
 
 <script>
-//import AgentStateControl from '@/components/AgentStateControl.vue'
+import PersistTimer from "@/components/PersistTimer.vue";
 
-import {  mdbAlert } from "mdbvue";
+import { mdbAlert } from "mdbvue";
 import { APP_STATES } from "@/defines.js";
 export default {
   name: "Dashboard",
   components: {
-
+    PersistTimer,
     mdbAlert
   },
   data() {
@@ -55,7 +55,6 @@ export default {
     }
   },
   computed: {
-
     isDialerLoggedIn() {
       return this.$store.state.agent.dialerLoginState;
     },

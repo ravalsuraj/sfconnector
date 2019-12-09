@@ -49,7 +49,8 @@ export default {
       this.resetFormattedTime();
     },
     updateTicks() {
-      let secondMillis = new Date().getTime() - this.refTime;
+      let secondMillis = new Date().getTime() - this.refTime+1;
+      secondMillis = secondMillis < 1 ? 0 : secondMillis;
       let seconds = Math.floor(secondMillis / 1000) % 60;
 
       let minutes = Math.floor(secondMillis / 1000 / 60) % 60;

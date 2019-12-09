@@ -26,7 +26,7 @@ import Utils from "@/services/utils.js";
 const vuexPersist = new VuexPersist({
   key: 'sf-cti-connector',
   storage: localStorage,
-  
+
   reducer: (state) => (
     {
       app: state.app,
@@ -37,28 +37,22 @@ const vuexPersist = new VuexPersist({
       callDisposition: state.callDisposition,
       timer: state.timer,
       timerControl: state.timerControl,
+      timers: state.timers,
+      timerList: state.timerList,
       statusMessages: state.statusMessages
     }
   ),
 })
 
-const vuexSessionStorage = new VuexPersist({
-  key: 'sf-cti-connector-session',
-  storage: sessionStorage,
-  reducer: (state) => (
-    {
-      app: state.app,
-      session: state.session,
-      agent: state.agent,
-      call: state.call, sfRecord: state.sfRecord,
-      clickToDialRequest: state.clickToDialRequest,
-      callDisposition: state.callDisposition,
-      timer: state.timer,
-      timerControl: state.timerControl,
-      statusMessages: state.statusMessages
-    }
-  ),
-})
+// const vuexSessionStorage = new VuexPersist({
+//   key: 'sf-cti-connector-session',
+//   storage: sessionStorage,
+//   reducer: (state) => (
+//     {
+
+//     }
+//   ),
+// })
 
 function initialState() {
   return {
@@ -184,7 +178,7 @@ function initialState() {
 
 export default new Vuex.Store({
   strict: false, //imporntat: this is set to false to comply with Vuex-persist
-  plugins: [vuexPersist.plugin, vuexSessionStorage.plugin, createMutationsSharer({
+  plugins: [vuexPersist.plugin, createMutationsSharer({
     predicate: [
       'setAutoDisposedCallId',
       'setSfRecordForExistingLeadCaller',
@@ -194,7 +188,8 @@ export default new Vuex.Store({
       'setCallCustomerNumber',
       'setCallCountryCode',
       'setCallVirtualNumber',
-      'setCallrecordingURL'
+      'setCallrecordingURL',
+      'updateAgentStatus'
     ]
   })],
   state: initialState,
@@ -262,7 +257,7 @@ export default new Vuex.Store({
       return state.timer.interval
     },
 
-/*************Getters for timer************** */
+    /*************Getters for timer************** */
     getTimers(state) {
       return state.timers;
     },
@@ -768,20 +763,20 @@ export default new Vuex.Store({
       state.timer.interval = payload
     },
 
-    
+
 
     //Persist Timer Mutations:
     ADD_UP_TIMER(state, timerName) {
       let newTimer = {
         state: TIMER_STATES.STOP,
-        direction: "DOWN",
+        direction: "UP",
         refTime: new Date().getTime()
       };
       state.timerList.push(timerName)
       state.timers.push(newTimer)
 
     },
-    
+
 
     ADD_DOWN_TIMER(state, timerName) {
       let newTimer = {
@@ -802,6 +797,12 @@ export default new Vuex.Store({
       }
 
     },
+    SET_START_TIME(state, [timerName, startTime]) {
+      let index = state.timerList.indexOf(timerName)
+      if (index != -1) {
+        state.timers[index].refTime = startTime;
+      }
+    },
     STOP_TIMER(state, timerName) {
       let index = state.timerList.indexOf(timerName)
       if (index != -1) {
@@ -813,12 +814,12 @@ export default new Vuex.Store({
       }
     },
 
-    START_TIMER(state, timerName) {
+    START_TIMER(state, [timerName, refTime]) {
 
       let index = state.timerList.indexOf(timerName)
       console.log("START_TIMER mutation called for index=" + index + ", timerName=" + timerName)
       if (index != -1) {
-        state.timers[index].refTime = new Date().getTime();
+        state.timers[index].refTime = refTime;
         state.timers[index].state = 1;
       } else {
         console.log("START_TIMER(): skipping, since timer does not exist in state. timerName=" + timerName)
@@ -879,7 +880,7 @@ export default new Vuex.Store({
       /*********************  Periodically check if tab is in foreground  ****************************/
       setInterval(function () {
         updateVisibilityChange();
-      }, 15000)
+      }, 1000)
 
       let tabCount, tabArray, tabState;
       let lsTabCount = localStorage.getItem('tabCount')
@@ -889,12 +890,12 @@ export default new Vuex.Store({
       console.log("registerTab(): lsTabCount=", lsTabCount, ", lsTabArray=", lsTabArray, ", lsTabState=", lsTabState)
 
       if (lsTabCount && lsTabArray && lsTabState) {
-        console.log("registerTab(): rawTabs is found, so retrieving existing tabs object")
+        console.log("registerTab(): retrieving existing tabs object")
         tabCount = lsTabCount;
         tabArray = JSON.parse(lsTabArray);
         tabState = JSON.parse(lsTabState);
       } else {
-        console.log("registerTab(): ls vars not found, so creating a new tabs object")
+        console.log("registerTab(): localstorage variables not found, so creating a new tabs object")
         tabCount = 0;
         tabArray = [];
         tabState = {
@@ -944,11 +945,6 @@ export default new Vuex.Store({
             if (tabState[key] === 'visible') {
               visibleTabCount++;
             }
-            // if (key === getters.tabId) {
-            //   tabState[key] = document.visibilityState
-            // } else {
-            //   tabState[key] = 'hidden'
-            // }
           }
 
           localStorage.setItem('tabState', JSON.stringify(tabState))
@@ -1551,39 +1547,39 @@ export default new Vuex.Store({
       }
     },
 
-/****************************************************
-    * Event Handler for Call Alerting Socket Event
-    ****************************************************/
-   async processCallAlerting({ getters, dispatch, commit }) {
-    console.log("processCallAlerting(): action entered. dispatching isThisMasterTab")
-    let isMasterTab = await dispatch('isThisMasterTab')
-    console.log("processCallAlerting(): isMasterTab=", isMasterTab)
-    if (isMasterTab === true) {
+    /****************************************************
+        * Event Handler for Call Alerting Socket Event
+        ****************************************************/
+    async processCallAlerting({ getters, dispatch, commit }) {
+      console.log("processCallAlerting(): action entered. dispatching isThisMasterTab")
+      let isMasterTab = await dispatch('isThisMasterTab')
+      console.log("processCallAlerting(): isMasterTab=", isMasterTab)
+      if (isMasterTab === true) {
 
-      if (getters.isCampaignCall) {
-        console.log("if condition for isCampaignCall");
-        dispatch('processCampaignCall')
-        dispatch('icws_updateAgentStatusMessage', "Campaign Call")
+        if (getters.isCampaignCall) {
+          console.log("if condition for isCampaignCall");
+          dispatch('processCampaignCall')
+          dispatch('icws_updateAgentStatusMessage', "Campaign Call")
 
-      } else if (getters.isInboundCall) {
+        } else if (getters.isInboundCall) {
 
-        console.log("else if condition for isInboundCall");
-        dispatch('processInboundCall')
+          console.log("else if condition for isInboundCall");
+          dispatch('processInboundCall')
 
 
-      } else if (getters.isOutboundCall) {
+        } else if (getters.isOutboundCall) {
 
-        console.log("else if condition for isOutboundCall");
-        dispatch('processOutboundCall');
+          console.log("else if condition for isOutboundCall");
+          dispatch('processOutboundCall');
 
+        } else {
+          console.log("mounted(): call is neither inbound nor outbound");
+        }
       } else {
-        console.log("mounted(): call is neither inbound nor outbound");
+        console.log("processCallAlerting(): skipping processCallAnswered since this tab DOES NOT have the min count")
       }
-    } else {
-      console.log("processCallAlerting(): skipping processCallAnswered since this tab DOES NOT have the min count")
-    }
-    dispatch("showSoftphone");
-  },
+      dispatch("showSoftphone");
+    },
 
     /****************************************************
     * Event Handler for Call Answered Socket Event
@@ -2110,9 +2106,9 @@ export default new Vuex.Store({
         });
     },
 
-  /*****************************************************************************
-      * Persist Timer related actions:
-      ******************************************************************************/
+    /*****************************************************************************
+        * Persist Timer related actions:
+        ******************************************************************************/
 
 
     addUpTimer({ commit }, timerName) {
@@ -2124,12 +2120,15 @@ export default new Vuex.Store({
     removeTimer({ commit }, timerName) {
       commit('REMOVE_TIMER', timerName)
     },
-    startTimer({ commit }, timerName) {
-      commit("START_TIMER", timerName);
+    startTimer({ commit }, [timerName, refTime]) {
+      commit("START_TIMER", [timerName, refTime]);
     },
 
     stopTimer({ commit }, timerName) {
       commit("STOP_TIMER", timerName);
+    },
+    setTimerStartTime({ commit }, [timerName, startTime]) {
+      commit('SET_START_TIME', [timerName, startTime])
     },
 
     /*****************************************************************************
@@ -2448,6 +2447,12 @@ export default new Vuex.Store({
     //Socket events sent by ICWS through the ICWS Connector whenever user status changes
     SOCKET_userStatusMessage(context, payload) {
       console.log(payload);
+      let timer=context.getters.getTimer('agentStateTimer') ;
+      if (timer) {
+        context.dispatch("startTimer", ["agentStateTimer", payload.timestamp]);
+      }
+
+
       if (payload.userStatusList.length > 0) {
         let agentStatus = payload.userStatusList[0].statusId
         if (agentStatus) {
@@ -2565,7 +2570,7 @@ export default new Vuex.Store({
               let parsedCli = parsePhone(cli)
               console.log("SOCKET_queueContentsMessage(): commiting call state values: cli=" + cli)
               console.log("SOCKET_queueContentsMessage(): parsedCli = " + JSON.stringify(parsedCli))
-              
+
 
               let custNum = ("" + (parsedCli.areaCode ? parsedCli.areaCode : '') + parsedCli.number)
               let countryCode = "+" + parsedCli.countryCode
@@ -2627,12 +2632,12 @@ export default new Vuex.Store({
             context.dispatch('disableClickToDial')
             console.log("SOCKET_queueContentsMessage() Socket message received for callState = " + callState)
             if (context.getters.appState !== APP_STATES.CALL_RINGING) {
-              
+
 
               context.commit('resetCallProcesses')
               context.commit('setCallStateAlerting')
               context.dispatch("processCallAnswered")
-              
+
               if (this.state.call.callStartDateTime === null) {
                 this.commit('setCallStartTime', new Date().valueOf())
               }

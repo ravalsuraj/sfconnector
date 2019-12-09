@@ -4,13 +4,17 @@
       <mdb-col col="6">
         <agent-state-dropdown></agent-state-dropdown>
       </mdb-col>
+
       <mdb-col col="3">
-        <mdb-icon icon="circle" :class="dialerState" class="mr-1" />
-        <span class="pr-1">(Dialer)</span>
+        <persist-timer timerName="agentStateTimer"></persist-timer>
       </mdb-col>
 
       <mdb-col col="3">
         <logout-button></logout-button>
+      </mdb-col>
+      <mdb-col col="3" class="px-2">
+        <mdb-icon icon="circle" :class="dialerState" class="mr-1 fl_notification_bulb" />
+        <span class="pr-1">Dialer</span>
       </mdb-col>
     </mdb-row>
   </mdb-container>
@@ -30,11 +34,12 @@
         </mdb-dropdown-menu>
       </mdb-dropdown>
     </mdb-navbar-nav>
-  </mdb-navbar> -->
+  </mdb-navbar>-->
 </template>
 
 <script>
 import IcwsConnector from "@/services/icwsConnector.js";
+import PersistTimer from "@/components/PersistTimer.vue";
 import {
   mdbIcon,
   mdbContainer,
@@ -59,7 +64,7 @@ export default {
   components: {
     AgentStateDropdown,
     LogoutButton,
-
+    PersistTimer,
     mdbContainer,
     mdbRow,
     mdbCol,
