@@ -26,6 +26,7 @@ import Utils from "@/services/utils.js";
 const vuexPersist = new VuexPersist({
   key: 'sf-cti-connector',
   storage: localStorage,
+  
   reducer: (state) => (
     {
       app: state.app,
@@ -61,6 +62,9 @@ const vuexSessionStorage = new VuexPersist({
 
 function initialState() {
   return {
+    timers: [
+    ],
+    timerList: [],
     app: {
       state: APP_STATES.LOGGED_OUT,
       previousState: APP_STATES.LOGGED_OUT,
@@ -258,6 +262,26 @@ export default new Vuex.Store({
       return state.timer.interval
     },
 
+/*************Getters for timer************** */
+    getTimers(state) {
+      return state.timers;
+    },
+    getTimer: (state) => (timerName) => {
+      let index = state.timerList.indexOf(timerName)
+      return state.timers[index]
+    },
+    getTimerIndex: (state) => (timerName) => {
+      return state.timerList.indexOf(timerName)
+    },
+    getTimerStatus: (state) => (timerName) => {
+      console.log("getters.getTimerStatus=" + state[timerName].status)
+      return state[timerName].status
+    },
+
+    getTimerExpiry: (state) => (timerName) => {
+      console.log("getTimerExpiry, timerName=", timerName)
+      return state[timerName].expiry
+    },
     /********************* getters: app  **************************/
 
     appState(state) {
@@ -742,6 +766,64 @@ export default new Vuex.Store({
     },
     SET_INTERVAL(state, payload) {
       state.timer.interval = payload
+    },
+
+    
+
+    //Persist Timer Mutations:
+    ADD_UP_TIMER(state, timerName) {
+      let newTimer = {
+        state: TIMER_STATES.STOP,
+        direction: "DOWN",
+        refTime: new Date().getTime()
+      };
+      state.timerList.push(timerName)
+      state.timers.push(newTimer)
+
+    },
+    
+
+    ADD_DOWN_TIMER(state, timerName) {
+      let newTimer = {
+        state: TIMER_STATES.STOP,
+        direction: "DOWN",
+        refTime: new Date().getTime()
+      };
+      state.timerList.push(timerName)
+      state.timers.push(newTimer)
+
+    },
+
+    REMOVE_TIMER(state, timerName) {
+      let index = state.timerList.indexOf(timerName)
+      if (index != -1) {
+        state.timers.splice(index, 1)
+        state.timerList.splice(index, 1)
+      }
+
+    },
+    STOP_TIMER(state, timerName) {
+      let index = state.timerList.indexOf(timerName)
+      if (index != -1) {
+        state.timers[index].state = 0;
+        state.timers[index].refTime = null;
+
+      } else {
+        console.log("STOP_TIMER(): skipping, since timer does not exist in state. timerName=" + timerName)
+      }
+    },
+
+    START_TIMER(state, timerName) {
+
+      let index = state.timerList.indexOf(timerName)
+      console.log("START_TIMER mutation called for index=" + index + ", timerName=" + timerName)
+      if (index != -1) {
+        state.timers[index].refTime = new Date().getTime();
+        state.timers[index].state = 1;
+      } else {
+        console.log("START_TIMER(): skipping, since timer does not exist in state. timerName=" + timerName)
+      }
+
     },
 
     /************************************************************************* */
@@ -2026,6 +2108,28 @@ export default new Vuex.Store({
           dispatch('icws_updateAgentStatusMessage', statusAfterDispose);
           dispatch("processAcwFinished");
         });
+    },
+
+  /*****************************************************************************
+      * Persist Timer related actions:
+      ******************************************************************************/
+
+
+    addUpTimer({ commit }, timerName) {
+      commit('ADD_UP_TIMER', timerName)
+    },
+    addDownTimer({ commit }, timerName) {
+      commit('ADD_DOWN_TIMER', timerName)
+    },
+    removeTimer({ commit }, timerName) {
+      commit('REMOVE_TIMER', timerName)
+    },
+    startTimer({ commit }, timerName) {
+      commit("START_TIMER", timerName);
+    },
+
+    stopTimer({ commit }, timerName) {
+      commit("STOP_TIMER", timerName);
     },
 
     /*****************************************************************************
