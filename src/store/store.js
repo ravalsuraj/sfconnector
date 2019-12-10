@@ -21,6 +21,7 @@ import { CONFIG } from '@/config.js'
 import parsePhone from "@/services/phoneParser.js";
 import IcwsConnector from "@/services/icwsConnector.js";
 import Utils from "@/services/utils.js";
+import TabManager from "@/services/TabManager.js"
 
 
 const vuexPersist = new VuexPersist({
@@ -1177,6 +1178,9 @@ export default new Vuex.Store({
     },
 
     processOnAppMounted(context) {
+      window.onbeforeunload = function () {
+        return "Please make sure all processing is complete before attempting to refresh";
+      }
       //Get SF UserId , Agent Id, Station, and Password, from salesforce records
       context.dispatch("sf_getUserDetails");
       context.dispatch("sfNavChangeListener");
@@ -1185,6 +1189,9 @@ export default new Vuex.Store({
       if (context.getters.appState === APP_STATES.AFTER_CALL_WORK) {
         context.dispatch('resumeClockTimer')
       }
+
+      TabManager.init()
+
     },
     processConnectionError(context) {
       context.commit('connectionError')
@@ -1453,6 +1460,9 @@ export default new Vuex.Store({
     * Event Handler for Call Answered Socket Event
     ****************************************************/
     processAgentLogin(context, loginpacket) {
+      if (!context.getters.getTimer("agentStateTimer")) {
+        context.dispatch("addUpTimer", "agentStateTimer");
+      }
       console.log("processAgentLogin sessionParams=", loginpacket.sessionParams)
       context.commit("setSessionParams", loginpacket.sessionParams);
       context.commit("setAgentLoginState", loginpacket.loginRequest);
@@ -1460,12 +1470,16 @@ export default new Vuex.Store({
 
       context.dispatch('fetchStatusMessages')
       context.dispatch("enableClickToDial")
+
     },
 
     /****************************************************
     * Event Handler for Call Answered Socket Event
     ****************************************************/
     processAgentLogout(context) {
+      if (context.getters.getTimer("agentStateTimer")) {
+        context.dispatch("removeTimer", "agentStateTimer");
+      }
       context.dispatch("disableClickToDial");
       context.commit("setAgentStateLogout");
       context.commit('setDialerState', DIALER_STATES.LOGGED_OUT);
@@ -1492,6 +1506,8 @@ export default new Vuex.Store({
     },
 
     isThisMasterTab({ getters }) {
+      console.log("isThisSelectedTab(): result=" + TabManager.isThisSelectedTab())
+      console.log("isThisActiveTab(): result=" + TabManager.isThisActiveTab())
       console.log("isThisMasterTab(): entered action")
       let isMasterTab = false
       let tabCount, tabArray, tabState, navState, visibleTabCount
@@ -2446,11 +2462,7 @@ export default new Vuex.Store({
 
     //Socket events sent by ICWS through the ICWS Connector whenever user status changes
     SOCKET_userStatusMessage(context, payload) {
-      console.log(payload);
-      let timer=context.getters.getTimer('agentStateTimer') ;
-      if (timer) {
-        context.dispatch("startTimer", ["agentStateTimer", payload.timestamp]);
-      }
+
 
 
       if (payload.userStatusList.length > 0) {
@@ -2459,7 +2471,17 @@ export default new Vuex.Store({
           context.commit('updateAgentStatus', agentStatus)
         }
       }
+      console.log(payload);
+      let timer = context.getters.getTimer('agentStateTimer');
+      if (timer) {
+        console.log("SOCKET_userStatusMessage(): agentStateTimer exists, so starting the timer")
+        context.dispatch("startTimer", ["agentStateTimer", payload.timestamp]);
+      } else {
+        console.log("SOCKET_userStatusMessage(): adding and calling startTimer() since timer does not exist")
+        context.dispatch("addUpTimer", "agentStateTimer");
+        context.dispatch("startTimer", ["agentStateTimer", payload.timestamp]);
 
+      }
     },
 
     SOCKET_availableCampaignsMessage({ getters, dispatch, commit }, payload) {

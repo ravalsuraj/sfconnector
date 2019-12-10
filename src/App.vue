@@ -36,10 +36,7 @@ export default {
   },
   beforeMount() {
     console.log("App(): lifecycle hook called -- beforeMount");
-    if (!this.$store.getters.getTimer("agentStateTimer")) {
-      this.$store.dispatch("addUpTimer", "agentStateTimer");
 
-    }
   },
   mounted() {
     console.log("CTI Connector App mounted");
