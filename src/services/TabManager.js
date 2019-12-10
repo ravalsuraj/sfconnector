@@ -1,56 +1,9 @@
 
-function init() {
-    //localStorage.clear();
-    manage_crash();
+//Create a windows ID for each windows that is oppened
+var current_window_id = Date.now() + "";//convert to string
+var PV_API = page_visibility_API_check();
+var time_period = 1000;//ms
 
-    //Create a windows ID for each windows that is oppened
-    var current_window_id = Date.now() + "";//convert to string
-    sessionStorage.current_window_id = current_window_id;
-    var time_period = 1000;//ms
-
-    //Check to see if PageVisibility API is supported or not
-    var PV_API = page_visibility_API_check();
-
-
-    if (PV_API) {
-        document.addEventListener(PV_API.handler, function () {
-            //console.log("current_window_id", current_window_id, "document[PV_API.hidden]", document[PV_API.hidden]);
-            if (document[PV_API.hidden]) {
-                //windows is hidden now
-                remove_from_active_windows(current_window_id);
-                //skip_once = true;
-            }
-            else {
-                //windows is visible now
-                //add_to_active_windows(current_window_id);
-                //skip_once = false;
-                check_current_window_status();
-            }
-        }, false);
-    }
-
-    /********************************************
-        ** ADD CURRENT WINDOW TO main_windows LIST **
-        *********************************************/
-    add_to_main_windows_list(current_window_id);
-    //update active_window to current window
-    localStorage.active_window = current_window_id;
-
-    /**************************************************************************
-        ** REMOVE CURRENT WINDOWS FROM THE main_windows LIST ON CLOSE OR REFRESH **
-        ***************************************************************************/
-    window.addEventListener('beforeunload', function () {
-        remove_from_main_windows_list(current_window_id);
-    });
-
-    //check storage continuously
-    setInterval(function () {
-        check_current_window_status();
-    }, time_period);
-
-    //initial check
-    check_current_window_status();
-}
 
 /************************
 	** PAGE VISIBILITY API **
@@ -281,5 +234,57 @@ export default {
         } else {
             return false
         }
+    },
+
+    init() {
+        //localStorage.clear();
+        manage_crash();
+
+
+        sessionStorage.current_window_id = current_window_id;
+
+
+        //Check to see if PageVisibility API is supported or not
+
+
+
+        if (PV_API) {
+            document.addEventListener(PV_API.handler, function () {
+                //console.log("current_window_id", current_window_id, "document[PV_API.hidden]", document[PV_API.hidden]);
+                if (document[PV_API.hidden]) {
+                    //windows is hidden now
+                    remove_from_active_windows(current_window_id);
+                    //skip_once = true;
+                }
+                else {
+                    //windows is visible now
+                    //add_to_active_windows(current_window_id);
+                    //skip_once = false;
+                    check_current_window_status();
+                }
+            }, false);
+        }
+
+        /********************************************
+            ** ADD CURRENT WINDOW TO main_windows LIST **
+            *********************************************/
+        add_to_main_windows_list(current_window_id);
+        //update active_window to current window
+        localStorage.active_window = current_window_id;
+
+        /**************************************************************************
+            ** REMOVE CURRENT WINDOWS FROM THE main_windows LIST ON CLOSE OR REFRESH **
+            ***************************************************************************/
+        window.addEventListener('beforeunload', function () {
+            remove_from_main_windows_list(current_window_id);
+        });
+
+        //check storage continuously
+        setInterval(function () {
+            check_current_window_status();
+        }, time_period);
+
+        //initial check
+        check_current_window_status();
     }
 }

@@ -1916,28 +1916,30 @@ export default new Vuex.Store({
         commit('setCallTerminationType', 'Answered')
         dispatch('setDialerDispositionCode', "success")
       } else {
+        commit('setCallDispositionComments', "Call not connected")
         dispatch('setDialerDispositionCode', "NO ANSWER")
         if (callDirection === CALL_DIRECTION.OUTBOUND) {
           commit('setCallTerminationType', 'Not Answered')
 
         } else if (callDirection === CALL_DIRECTION.INBOUND) {
-          commit('setCallTerminationType', 'Missed')
+          commit('setCallTerminationType', '')
 
           if (getters.isInboundCall) {
-            commit('setCallDispositionComments', "Inbound Call could not be connected. This may be due to desk-phone connectivity issues. Call re-routed to another free agent")
+            commit('setCallDispositionComments', "Inbound Call not answerable by agent. Call re-routed to another free agent")
           } else if (getters.isCampaignCall) {
             commit('setCallTerminationType', 'Not Answered')
-            commit('setCallDispositionComments', "Campaign Call could not be connected. This may be due to desk-phone connectivity issues. ")
+            commit('setCallDispositionComments', "Campaign Call not answerable by agent. Another attempt will be made by the dialer")
           }
         }
 
         commit('setCallStartTime', getters.getCallEndTime)
-        commit('setCallDispositionComments', "Call not connected")
+
 
         const duration = 0;
         commit('setCallDuration', duration.toFixed(2));
       }
       commit('setCallStateDropped')
+      dispatch('processAcwStarted')
     },
     /****************************************************
     * Event Handler for Call Dropped Socket Event
@@ -1954,6 +1956,8 @@ export default new Vuex.Store({
 
           if (getters.isOutboundCall || getters.isCampaignCall) {
             dispatch('icws_updateAgentStatusMessage', "ACW_ORL")
+          } else if (getters.getCallTerminationType !== "Answered") {
+            dispatch('icws_updateAgentStatusMessage', "ACW_ORL")
           }
 
           if (getters.callRecordingId && getters.callRecordingId !== "") {
@@ -1962,15 +1966,26 @@ export default new Vuex.Store({
 
             let recordingUrl = await dispatch('icws_fetchRecordingUrl')
             console.log("processAcwStarted():  recording URL received")
-            commit('setCallrecordingURL', recordingUrl)
-
+            if (recordingUrl !== "error") {
+              commit('setCallrecordingURL', recordingUrl);
+            }
           } else {
             console.log("processAcwStarted(): skipping fetch recording URL since recordingID is not valid")
           }
 
-          dispatch("packCallDisposition");
-          dispatch('sf_insertCallRecord')
-          dispatch('resetDialerDispositionCode')
+          dispatch("packCallDisposition")
+          /************************************************************************************
+          * if the call was not answerable (for example if the call went to alerting),
+          * do not insert the call, since the call will be inserted through VCC Admin
+          *************************************************************************************/
+          if (getters.isCampaignCall && getters.getCallTerminationType === "Not Answered") {
+            console.log("processAcwStarted(): skipping insert call, since call was not answerable")
+            dispatch('sendLogsToServer', "processAcwStarted(): skipping insert call, since call was not answerable")
+          } else {
+            dispatch('sf_insertCallRecord')
+          }
+
+
 
         } else {
           //dispatch('resumeClockTimer')
@@ -2097,6 +2112,7 @@ export default new Vuex.Store({
       //call/:interactionId/code/:wrapupCode/wrapup
       IcwsConnector.sendWrapUpRequestToDialer(fullRequestParams)
         .then(resp => {
+
           console.log(
             "disposeCallOnDialer(): response successful. resp=",
             resp
@@ -2110,15 +2126,15 @@ export default new Vuex.Store({
 
           } else {
             console.log("disposeCallOnDialer(): Response Failed. resp=", resp);
-
           }
         })
         .catch(error => {
           console.log("disposeCallOnDialer(): error: ", error);
         })
         .finally(() => {
+          dispatch('resetDialerDispositionCode')
           dispatch('icws_updateAgentStatusMessage', statusAfterDispose);
-          dispatch("processAcwFinished");
+          dispatch("processAcwFinished")
         });
     },
 
@@ -2243,11 +2259,12 @@ export default new Vuex.Store({
             resolve(resp.data.body.uri)
           } else {
             console.log("icws_fetchRecordingUrl(): Failed resp=", resp);
+            resolve("error");
           }
         })
           .catch(error => {
             console.log("icws_fetchRecordingUrl(): response failed: ", error);
-            reject(error);
+            resolve("error");
           })
       })
     },
@@ -2701,7 +2718,7 @@ export default new Vuex.Store({
               this.commit('setCallEndTime', new Date().valueOf())
               // context.commit('setCallStateDropped')
               context.dispatch('processCallDropped')
-              this.dispatch('processAcwStarted')
+
               context.dispatch('showSoftphone')
               if (callStateString === 'Disconnected [There Is No Contact Address For Your Station]') {
                 Vue.notify({
