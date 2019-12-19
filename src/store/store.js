@@ -1958,6 +1958,7 @@ export default new Vuex.Store({
             dispatch('icws_updateAgentStatusMessage', "ACW_ORL")
           } else if (getters.getCallTerminationType !== "Answered") {
             dispatch('icws_updateAgentStatusMessage', "ACW_ORL")
+
           }
 
           if (getters.callRecordingId && getters.callRecordingId !== "") {
@@ -2168,11 +2169,12 @@ export default new Vuex.Store({
      ******************************************************************************/
     startClockTimer({ getters, commit }) {
       let offset = getters.getTargetSeconds;
-      commit('SET_REF_TIME', new Date().getTime() + offset);
+      let refTime = Number(getters.getCallEndTime)+offset
+      console.log("startClockTimer(): refTime=" + refTime)
+      commit('SET_REF_TIME', refTime);
       commit('SET_CURRENT_TIME')
       commit('SET_TIMER_CONTROL', TIMER_STATES.CONTROL.START)
       commit('SET_TIMER_STATE', TIMER_STATES.EVENTS.STARTED)
-
     },
     resumeClockTimer({ getters, commit, dispatch }) {
 
@@ -2654,7 +2656,7 @@ export default new Vuex.Store({
 
               this.commit('setCallStateDropped')
               this.dispatch('showSoftphone')
-              context.commit('setCallEndTime', new Date().valueOf())
+              //context.commit('setCallEndTime', payload.timestamp)
             } else {
               console.log("interaction removed but call state invalid")
             }
@@ -2715,8 +2717,9 @@ export default new Vuex.Store({
           case CALL_STATES.DISCONNECTED:
             console.log("SOCKET_queueContentsMessage() Socket message received for callState = " + callState)
             if (context.getters.appState !== APP_STATES.AFTER_CALL_WORK) {
-              this.commit('setCallEndTime', new Date().valueOf())
+              this.commit('setCallEndTime', payload.timestamp)
               // context.commit('setCallStateDropped')
+
               context.dispatch('processCallDropped')
 
               context.dispatch('showSoftphone')
