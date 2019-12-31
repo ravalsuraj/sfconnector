@@ -1,7 +1,7 @@
 export const APP_STATES = Object.freeze({
   LOGGED_OUT: 'LOGGED_OUT',
   LOGGED_IN: 'LOGGED_IN',
-  CALL_OFFERING: 'CALL_OFFERING',
+  CALL_OFFERING : 'CALL_OFFERING',
   CALL_RINGING: 'CALL_RINGING',
   CALL_ANSWERED: 'CALL_ANSWERED',
   AFTER_CALL_WORK: 'AFTER_CALL_WORK',
@@ -24,8 +24,8 @@ export const CALL_PURPOSE = Object.freeze({
 })
 export const DIALER_STATES = Object.freeze({
   LOGGED_OUT: "LOGGED_OUT",
-  DIALER_LOGGED_IN: "DIALER_LOGGED_IN",
-  CAMPAIGN_LOGGED_IN: "CAMPAIGN_LOGGED_IN"
+  DIALER_LOGGED_IN : "DIALER_LOGGED_IN",
+  CAMPAIGN_LOGGED_IN : "CAMPAIGN_LOGGED_IN"
 })
 export const AGENT_STATES = Object.freeze({
   UNKNOWN: 0,
@@ -71,7 +71,7 @@ export const CALL_STATES = Object.freeze({
   IDLE: 'Idle',
 
   ALERTING: 'Alerting',
-  CONNECTED: 'Connected',
+  CONNECTED :'Connected',
   DIALING: 'Dialing',
   DISCONNECTED: 'Disconnected',
   INITIALIZING: 'Initializing',

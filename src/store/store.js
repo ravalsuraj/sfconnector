@@ -570,7 +570,6 @@ export default new Vuex.Store({
     },
 
     setSfRecordForMultipleLeadCaller(state, payload) {
-      console.log("setSfRecordForMultipleLeadCaller(): payload=" + JSON.stringify(payload))
       state.sfRecord = payload.lead
       state.sfRecord.campaignId = payload.campaignId
       state.sfRecord.wasLeadIdNull = 'no'
@@ -599,8 +598,6 @@ export default new Vuex.Store({
     setAutoDisposedCallId(state, payload) {
       state.callDisposition.sfCallId = payload
     },
-
-
 
     setCallDisposition(state) {
       console.log("setCallDisposition() entering pack call disposition")
@@ -689,21 +686,6 @@ export default new Vuex.Store({
     },
     setCallStateDropped(state) {
       state.app.state = APP_STATES.AFTER_CALL_WORK
-      // if (state.app.state === APP_STATES.CALL_ANSWERED) {
-      //   state.app.state = APP_STATES.AFTER_CALL_WORK
-      //   state.call.callTerminationType = 'Answered'
-      // } else {
-      //   if (getters.callDirection === CALL_DIRECTION.OUTBOUND) {
-      //     state.call.callTerminationType = 'Not Answered'
-      //   } else if (getters.callDirection === CALL_DIRECTION.INBOUND) {
-      //     state.call.callTerminationType = 'Missed'
-      //   }
-
-      //   state.call.callStartDateTime = state.call.callEndDateTime
-      //   state.call.comments = "Call Ringing/Dialing before being disconnected"
-      //   const duration = 0;
-      //   state.call.callDuration = duration.toFixed(2);
-      // }
     },
 
 
@@ -1470,7 +1452,6 @@ export default new Vuex.Store({
 
       context.dispatch('fetchStatusMessages')
       context.dispatch("enableClickToDial")
-
     },
 
     /****************************************************
@@ -1480,11 +1461,11 @@ export default new Vuex.Store({
       if (context.getters.getTimer("agentStateTimer")) {
         context.dispatch("removeTimer", "agentStateTimer");
       }
-      context.dispatch("disableClickToDial");
+      context.dispatch("disableClickToDial")
       context.commit("setAgentStateLogout");
       context.commit('setDialerState', DIALER_STATES.LOGGED_OUT);
       context.commit("resetSessionParams");
-      context.commit("resetVuexState");
+      context.commit("resetVuexState")
 
       window.localStorage.removeItem('sf-cti-connector');
       context.dispatch('sf_getUserDetails')
@@ -1529,6 +1510,7 @@ export default new Vuex.Store({
 
         if (tabCount < 2) {
           console.log("isThisMasterTab(): tabCount <2 ")
+          this.dispatch('sendLogsToServer', "isThisMasterTab(): tabCount <2 ");
           isMasterTab = true
         } else {
           if (visibleTabCount !== 1) {
@@ -1536,22 +1518,17 @@ export default new Vuex.Store({
             for (var navKey in navState) {
 
               console.log("isThisMasterTab(): for navState, navKey=", navKey, ",currentTabId=", currentTabId, ", navState[key]=", navState[navKey])
+              this.dispatch('sendLogsToServer', "isThisMasterTab(): for navState, visibleTabCount =" + visibleTabCount + ", navKey=" + navKey + ",currentTabId=" + currentTabId + ", navState[key]=" + navState[navKey])
 
               if (navState[navKey] === 'visible')
                 isMasterTab = (navKey === currentTabId)
             }
-
-            // console.log("isThisMasterTab(): visibleTabCount !== 1")
-            // let refTabId = Math.max.apply(Math, tabArray)
-            // let currentTabId = parseInt(getters.tabId)
-            // isMasterTab = (currentTabId === refTabId)
-            // console.log("isThisMasterTab(): currentTabId=", currentTabId, ", refTabId=", refTabId, "isMasterTab=", isMasterTab)
-
           }
           else {
             console.log("isThisMasterTab(): visible TabCount ===1")
             for (var tabKey in tabState) {
               console.log("isThisMasterTab(): key=", tabKey, ",currentTabId=", currentTabId, ", tabState[key]=", tabState[tabKey])
+              this.dispatch("sendLogsToServer", "isThisMasterTab(): key=" + tabKey + ",currentTabId=" + currentTabId + ", tabState[key]=" + tabState[tabKey])
               if (tabState[tabKey] === 'visible')
                 isMasterTab = (tabKey === currentTabId)
             }
@@ -1673,6 +1650,7 @@ export default new Vuex.Store({
             jsonResp
           );
           dispatch("setCallVirtualNumber", jsonResp.Called_Number__c)
+
         } else {
           console.error(
             "CTI_OpenCTIConnector/getVirtualNumberForLatestMissedCall(): response failure. response.errors=" +
@@ -1880,7 +1858,8 @@ export default new Vuex.Store({
     screenPopObject(context, record) {
       if (!context.getters.isScreenPopDone) {
         context.commit('screenPopDone')
-        console.log("sf_screenPopLead() : entered the function. recordId=", record.id, " recordType=", record.type);
+        console.log("sf_screenPopLead() : entered the function. record="+ JSON.stringify(record));
+        context.dispatch("sendLogsToServer", "sf_screenPopLead() : entered the function. record="+ JSON.stringify(record));
         // eslint-disable-next-line no-undef
         sforce.opencti.screenPop({
           // eslint-disable-next-line no-undef
@@ -1909,7 +1888,9 @@ export default new Vuex.Store({
     onAfterCallWorkMounted(context) {
       console.log("onAfterCallWorkMounted() action dispatch started")
     },
-
+    /****************************************************
+    * Event Handler for Call Dropped Socket Event
+    ****************************************************/
     processCallDropped({ commit, dispatch, getters }) {
       let callDirection = getters.callDirection;
       if (getters.appState === APP_STATES.CALL_ANSWERED) {
@@ -1941,12 +1922,14 @@ export default new Vuex.Store({
       commit('setCallStateDropped')
       dispatch('processAcwStarted')
     },
+    
     /****************************************************
-    * Event Handler for Call Dropped Socket Event
+    * Process called after the Call Dropped event is processed
     ***************************************************/
 
     async processAcwStarted({ commit, dispatch, getters }) {
       try {
+
         console.log("processAcwStarted() entered function/try")
         dispatch('showSoftphone')
         dispatch('startClockTimer')
@@ -2017,6 +2000,7 @@ export default new Vuex.Store({
         dispatch('updateCallDispositionWithComments')
       } else {
         console.error("the call record could not be updated since the autoDisposeCallId is null")
+        dispatch("sendLogsToServer", "the call record could not be updated since the autoDisposeCallId is null")
         Vue.notify({
           group: "error",
           title: "Error",
@@ -2109,11 +2093,9 @@ export default new Vuex.Store({
       let fullRequestParams = getters.sessionParams;
       fullRequestParams.userId = getters.userId;
       fullRequestParams.wrapupCode = getters.getDialerDispositionWrapupCode
-      //fullRequestParams.wrapupCode = "NO ANSWER"
       //call/:interactionId/code/:wrapupCode/wrapup
       IcwsConnector.sendWrapUpRequestToDialer(fullRequestParams)
         .then(resp => {
-
           console.log(
             "disposeCallOnDialer(): response successful. resp=",
             resp
@@ -2127,6 +2109,7 @@ export default new Vuex.Store({
 
           } else {
             console.log("disposeCallOnDialer(): Response Failed. resp=", resp);
+
           }
         })
         .catch(error => {
@@ -2175,6 +2158,7 @@ export default new Vuex.Store({
       commit('SET_CURRENT_TIME')
       commit('SET_TIMER_CONTROL', TIMER_STATES.CONTROL.START)
       commit('SET_TIMER_STATE', TIMER_STATES.EVENTS.STARTED)
+
     },
     resumeClockTimer({ getters, commit, dispatch }) {
 
@@ -2482,8 +2466,6 @@ export default new Vuex.Store({
     //Socket events sent by ICWS through the ICWS Connector whenever user status changes
     SOCKET_userStatusMessage(context, payload) {
 
-
-
       if (payload.userStatusList.length > 0) {
         let agentStatus = payload.userStatusList[0].statusId
         if (agentStatus) {
@@ -2718,10 +2700,7 @@ export default new Vuex.Store({
             console.log("SOCKET_queueContentsMessage() Socket message received for callState = " + callState)
             if (context.getters.appState !== APP_STATES.AFTER_CALL_WORK) {
               this.commit('setCallEndTime', payload.timestamp)
-              // context.commit('setCallStateDropped')
-
               context.dispatch('processCallDropped')
-
               context.dispatch('showSoftphone')
               if (callStateString === 'Disconnected [There Is No Contact Address For Your Station]') {
                 Vue.notify({

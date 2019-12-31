@@ -5,37 +5,20 @@
         <agent-state-dropdown></agent-state-dropdown>
       </mdb-col>
 
-      <!-- <mdb-col col="3">
+      <mdb-col col="3">
         <persist-timer timerName="agentStateTimer"></persist-timer>
-      </mdb-col>-->
+      </mdb-col>
 
+      <mdb-col col="3">
+        <logout-button></logout-button>
+      </mdb-col>
       <mdb-col col="3" class="px-2">
         <mdb-icon icon="circle" :class="dialerState" class="mr-1 fl_notification_bulb" />
         <span class="pr-1">Dialer</span>
-        
-      </mdb-col>
-      <mdb-col col="3">
-        <logout-button></logout-button>
       </mdb-col>
     </mdb-row>
   </mdb-container>
 
-  <!-- <mdb-navbar expand="large" dark color="stylish">
-    <mdb-navbar-brand href="#">Navbar</mdb-navbar-brand>
-
-    <mdb-navbar-nav>
-      <mdb-nav-item href="#" active>Home</mdb-nav-item>
-      <mdb-nav-item href="#">Link</mdb-nav-item>
-      <mdb-nav-item class="disabled" href="#">Disabled</mdb-nav-item>
-      <mdb-dropdown tag="li" class="nav-item">
-        <mdb-dropdown-menu>
-          <mdb-dropdown-item>Action</mdb-dropdown-item>
-          <mdb-dropdown-item>Another action</mdb-dropdown-item>
-          <mdb-dropdown-item>Something else here</mdb-dropdown-item>
-        </mdb-dropdown-menu>
-      </mdb-dropdown>
-    </mdb-navbar-nav>
-  </mdb-navbar>-->
 </template>
 
 <script>

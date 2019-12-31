@@ -2,7 +2,7 @@ const express = require('express');
 const serveStatic = require("serve-static")
 const path = require('path');
 let fs = require('fs')
-// let config = require('./src/config')
+
 const SERVER_TIMEOUT_MS = 20000;
 const PORT = process.env.PORT || 9092;
 
@@ -17,10 +17,6 @@ const app = express()
 
 app.use(serveStatic(path.join(__dirname, 'dist')));
 
-// function send404(req, res) {
-//     // send your 404 here
-//     res.render('404')
-//   }
 server.setTimeout(SERVER_TIMEOUT_MS);
 
 server.listen(PORT, () => {

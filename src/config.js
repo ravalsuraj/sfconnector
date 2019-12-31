@@ -1,10 +1,3 @@
-// export const CONFIG = Object.freeze({
-//     CENTRAL_NUMBER: '02268630700',
-//     ICWS_URL: 'https://cticonnector.oberoirealty.com/icws-cti-connector',
-//     SOCKET_URL: 'https://cticonnector.oberoirealty.com:8080',
-//     DIAL_PREFIX: ''
-// })
-
 export const CONFIG = Object.freeze({
     CENTRAL_NUMBER: '02268630700',
     ICWS_URL: 'https://104.211.95.34:9443/icws-cti-connector',
