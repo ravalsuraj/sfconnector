@@ -1178,9 +1178,9 @@ export default new Vuex.Store({
     },
 
     processOnAppMounted(context) {
-      window.onbeforeunload = function () {
-        return "Please make sure all processing is complete before attempting to refresh";
-      }
+      // window.onbeforeunload = function () {
+      //   return "Please make sure all processing is complete before attempting to refresh";
+      // }
       //Get SF UserId , Agent Id, Station, and Password, from salesforce records
       context.dispatch("sf_getUserDetails");
       context.dispatch("sfNavChangeListener");
