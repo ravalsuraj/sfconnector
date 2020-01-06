@@ -2152,9 +2152,12 @@ export default new Vuex.Store({
      ******************************************************************************/
     startClockTimer({ getters, commit }) {
       let offset = getters.getTargetSeconds;
-      let refTime = Number(getters.getCallEndTime)+offset
-      console.log("startClockTimer(): refTime=" + refTime)
-      commit('SET_REF_TIME', refTime);
+      // let refTime = Number(getters.getCallEndTime)+offset
+
+      // console.log("startClockTimer(): refTime=" + refTime)
+      // commit('SET_REF_TIME', refTime);
+
+      commit('SET_REF_TIME', new Date().getTime() + offset);
       commit('SET_CURRENT_TIME')
       commit('SET_TIMER_CONTROL', TIMER_STATES.CONTROL.START)
       commit('SET_TIMER_STATE', TIMER_STATES.EVENTS.STARTED)
