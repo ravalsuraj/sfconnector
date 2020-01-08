@@ -5,5 +5,5 @@ export const CONFIG = Object.freeze({
     DIALER_PREFIX: '',
     SYS_STATUS_GROUPS : ['ON_CALL', 'AWAITING_CALLBACK', 'ACW'],
     CAMPAIGN_NAME : 'PMT Test',
-    MANUAL_CALLING_WORKGROUP : 'PMT_Manual'
+    MANUAL_CALLING_WORKGROUP : 'PMT_ManualCalls_UAT'
 })

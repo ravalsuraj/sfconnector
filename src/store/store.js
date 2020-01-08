@@ -632,6 +632,10 @@ export default new Vuex.Store({
     },
     setCallEndTime(state, payload) {
       state.call.callEndDateTime = payload.toString()
+      if(state.call.callStartDateTime ===null){
+        state.call.callStartDateTime = payload.toString()
+      }
+      console.log("setCallEndTime() setting duration.payload="+payload.toString()+", endtime="+state.call.callEndDateTime+", starttime="+state.call.callStartDateTime)
       state.call.callDuration = ((state.call.callEndDateTime - state.call.callStartDateTime) / 1000).toFixed(2);
     },
 
@@ -1912,9 +1916,11 @@ export default new Vuex.Store({
             commit('setCallDispositionComments', "Campaign Call not answerable by agent. Another attempt will be made by the dialer")
           }
         }
-
-        commit('setCallStartTime', getters.getCallEndTime)
-
+        if(getters.getCallEndTime){
+          commit('setCallStartTime', getters.getCallEndTime)
+        }else{
+          console.log("skipping setCallStartTime(): getCallEndTime is null")
+        }
 
         const duration = 0;
         commit('setCallDuration', duration.toFixed(2));
@@ -2665,7 +2671,7 @@ export default new Vuex.Store({
               context.dispatch("processCallAnswered")
 
               if (this.state.call.callStartDateTime === null) {
-                this.commit('setCallStartTime', new Date().valueOf())
+                this.commit('setCallStartTime', payload.timestamp)
               }
             } else {
               console.error("SOCKET_queueContentsMessage(): received duplicate ALERTING event")
@@ -2678,7 +2684,7 @@ export default new Vuex.Store({
             context.dispatch('disableClickToDial')
             console.log("SOCKET_queueContentsMessage() Socket message received for callState = " + callState)
             if (this.state.call.callStartDateTime === null) {
-              this.commit('setCallStartTime', new Date().valueOf())
+              this.commit('setCallStartTime',payload.timestamp)
             }
             break;
 
@@ -2691,7 +2697,7 @@ export default new Vuex.Store({
 
               context.dispatch("showSoftphone")
               if (this.state.call.callStartDateTime === null) {
-                this.commit('setCallStartTime', new Date().valueOf())
+                this.commit('setCallStartTime', payload.timestamp)
               }
             } else {
               console.error("SOCKET_queueContentsMessage(): received duplicate CONNECTED event")
