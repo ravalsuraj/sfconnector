@@ -632,11 +632,15 @@ export default new Vuex.Store({
     },
     setCallEndTime(state, payload) {
       state.call.callEndDateTime = payload.toString()
-      if(state.call.callStartDateTime ===null){
+      if (state.call.callStartDateTime === null) {
         state.call.callStartDateTime = payload.toString()
       }
-      console.log("setCallEndTime() setting duration.payload="+payload.toString()+", endtime="+state.call.callEndDateTime+", starttime="+state.call.callStartDateTime)
+      console.log("setCallEndTime() setting duration.payload=" + payload.toString() + ", endtime=" + state.call.callEndDateTime + ", starttime=" + state.call.callStartDateTime)
       state.call.callDuration = ((state.call.callEndDateTime - state.call.callStartDateTime) / 1000).toFixed(2);
+    },
+
+    setCallDuration(state, payload) {
+      state.call.callDuration = payload;
     },
 
     setCallVirtualNumber(state, payload) {
@@ -867,7 +871,8 @@ export default new Vuex.Store({
       /*********************  Periodically check if tab is in foreground  ****************************/
       setInterval(function () {
         updateVisibilityChange();
-      }, 1000)
+        testFunctionForMasterTab();
+      }, 3000)
 
       let tabCount, tabArray, tabState;
       let lsTabCount = localStorage.getItem('tabCount')
@@ -940,6 +945,12 @@ export default new Vuex.Store({
         } else {
           console.log("registerTab(): lsTabState is not defined")
         }
+      }
+
+      let testFunctionForMasterTab = () => {
+        dispatch('isThisMasterTab').then((isMasterTab) => {
+          console.log("isThisMasterTab called for tab " + getters.tabId + " returned " + isMasterTab);
+        })
       }
 
       /*****************************************************************
@@ -1519,13 +1530,22 @@ export default new Vuex.Store({
         } else {
           if (visibleTabCount !== 1) {
             //if no tabs are visible, pick the most recent active tab
+            let visibleNavCount = 0
             for (var navKey in navState) {
 
               console.log("isThisMasterTab(): for navState, navKey=", navKey, ",currentTabId=", currentTabId, ", navState[key]=", navState[navKey])
               this.dispatch('sendLogsToServer', "isThisMasterTab(): for navState, visibleTabCount =" + visibleTabCount + ", navKey=" + navKey + ",currentTabId=" + currentTabId + ", navState[key]=" + navState[navKey])
 
-              if (navState[navKey] === 'visible')
+              if (navState[navKey] === 'visible'){
+                visibleNavCount=visibleNavCount+1;
                 isMasterTab = (navKey === currentTabId)
+              }
+            }
+            if(visibleNavCount===0){
+              if(currentTabId ===navState[navState.length]){
+                isMasterTab = true;
+                console.log("setting isMasterTab as true since this is the latest tab");
+              }
             }
           }
           else {
@@ -1862,8 +1882,8 @@ export default new Vuex.Store({
     screenPopObject(context, record) {
       if (!context.getters.isScreenPopDone) {
         context.commit('screenPopDone')
-        console.log("sf_screenPopLead() : entered the function. record="+ JSON.stringify(record));
-        context.dispatch("sendLogsToServer", "sf_screenPopLead() : entered the function. record="+ JSON.stringify(record));
+        console.log("sf_screenPopLead() : entered the function. record=" + JSON.stringify(record));
+        context.dispatch("sendLogsToServer", "sf_screenPopLead() : entered the function. record=" + JSON.stringify(record));
         // eslint-disable-next-line no-undef
         sforce.opencti.screenPop({
           // eslint-disable-next-line no-undef
@@ -1916,9 +1936,9 @@ export default new Vuex.Store({
             commit('setCallDispositionComments', "Campaign Call not answerable by agent. Another attempt will be made by the dialer")
           }
         }
-        if(getters.getCallEndTime){
+        if (getters.getCallEndTime) {
           commit('setCallStartTime', getters.getCallEndTime)
-        }else{
+        } else {
           console.log("skipping setCallStartTime(): getCallEndTime is null")
         }
 
@@ -1928,7 +1948,7 @@ export default new Vuex.Store({
       commit('setCallStateDropped')
       dispatch('processAcwStarted')
     },
-    
+
     /****************************************************
     * Process called after the Call Dropped event is processed
     ***************************************************/
@@ -2478,6 +2498,7 @@ export default new Vuex.Store({
       if (payload.userStatusList.length > 0) {
         let agentStatus = payload.userStatusList[0].statusId
         if (agentStatus) {
+          
           context.commit('updateAgentStatus', agentStatus)
         }
       }
@@ -2684,7 +2705,7 @@ export default new Vuex.Store({
             context.dispatch('disableClickToDial')
             console.log("SOCKET_queueContentsMessage() Socket message received for callState = " + callState)
             if (this.state.call.callStartDateTime === null) {
-              this.commit('setCallStartTime',payload.timestamp)
+              this.commit('setCallStartTime', payload.timestamp)
             }
             break;
 
