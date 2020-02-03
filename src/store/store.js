@@ -871,8 +871,8 @@ export default new Vuex.Store({
       /*********************  Periodically check if tab is in foreground  ****************************/
       setInterval(function () {
         updateVisibilityChange();
-        testFunctionForMasterTab();
-      }, 3000)
+        //testFunctionForMasterTab();
+      }, 1000)
 
       let tabCount, tabArray, tabState;
       let lsTabCount = localStorage.getItem('tabCount')
@@ -948,9 +948,21 @@ export default new Vuex.Store({
       }
 
       let testFunctionForMasterTab = () => {
-        dispatch('isThisMasterTab').then((isMasterTab) => {
-          console.log("isThisMasterTab called for tab " + getters.tabId + " returned " + isMasterTab);
-        })
+            //locked "critical section" code - runs only once
+    TabUtils.CallOnce("lockname", function () { console.log("I run only once in multiple tabs"); }, 500);
+    //"timeout" above is optional (for how long to hold the lock - in milliseconds)
+
+    //handle a broadcasted message
+    // TabUtils.OnBroadcastMessage("eventName", function (eventDataString) { DoSomething(); });
+
+    //sends a broadcast message to all tabs, including the current tab too!
+    // TabUtils.BroadcastMessageToAllTabs("eventName", eventDataString);
+
+    //P.S. standard localStorage events are not being sent to current tab, only OTHER tabs.
+    //This component sends the message to ALL tabs
+        // dispatch('isThisMasterTab').then((isMasterTab) => {
+        //   console.log("isThisMasterTab called for tab " + getters.tabId + " returned " + isMasterTab);
+        // })
       }
 
       /*****************************************************************
@@ -1498,7 +1510,7 @@ export default new Vuex.Store({
 
 
     async onCallAnsweredMounted({ getters, dispatch, commit }) {
-      //dispatch('processCallAnswered')
+      //dispatch('processNewCall')
     },
 
     isThisMasterTab({ getters }) {
@@ -1571,7 +1583,7 @@ export default new Vuex.Store({
       console.log("processCallAlerting(): action entered. dispatching isThisMasterTab")
       let isMasterTab = await dispatch('isThisMasterTab')
       console.log("processCallAlerting(): isMasterTab=", isMasterTab)
-      if (isMasterTab === true) {
+      TabUtils.CallOnce("processCallAlerting", function () { 
 
         if (getters.isCampaignCall) {
           console.log("if condition for isCampaignCall");
@@ -1592,20 +1604,22 @@ export default new Vuex.Store({
         } else {
           console.log("mounted(): call is neither inbound nor outbound");
         }
-      } else {
-        console.log("processCallAlerting(): skipping processCallAnswered since this tab DOES NOT have the min count")
-      }
+       }, 2000);
+      /**/
+      // else {
+      //   console.log("processCallAlerting(): skipping processNewCall since this tab DOES NOT have the min count")
+      // }
       dispatch("showSoftphone");
     },
 
     /****************************************************
     * Event Handler for Call Answered Socket Event
     ****************************************************/
-    async processCallAnswered({ getters, dispatch, commit }) {
-      console.log("processCallAnswered(): action entered. dispatching isThisMasterTab")
+    async processNewCall({ getters, dispatch, commit }) {
+      console.log("processNewCall(): action entered. dispatching isThisMasterTab")
       let isMasterTab = await dispatch('isThisMasterTab')
-      console.log("processCallAnswered(): isMasterTab=", isMasterTab)
-      if (isMasterTab === true) {
+      console.log("processNewCall(): isMasterTab=", isMasterTab)
+      TabUtils.CallOnce("processCallAlerting", function () { 
 
         if (getters.isCampaignCall) {
           console.log("if condition for isCampaignCall");
@@ -1627,9 +1641,10 @@ export default new Vuex.Store({
         } else {
           console.log("mounted(): call is neither inbound nor outbound");
         }
-      } else {
-        console.log("processCallAnswered(): skipping processCallAnswered since this tab DOES NOT have the min count")
-      }
+      }); 
+      // else {
+      //   console.log("processNewCall(): skipping processNewCall since this tab DOES NOT have the min count")
+      // }
       dispatch("showSoftphone");
     },
 
@@ -2689,7 +2704,7 @@ export default new Vuex.Store({
 
               context.commit('resetCallProcesses')
               context.commit('setCallStateAlerting')
-              context.dispatch("processCallAnswered")
+              context.dispatch("processNewCall")
 
               if (this.state.call.callStartDateTime === null) {
                 this.commit('setCallStartTime', payload.timestamp)
@@ -2714,7 +2729,7 @@ export default new Vuex.Store({
             if (context.getters.appState !== APP_STATES.CALL_ANSWERED) {
               context.commit('resetCallProcesses')
               context.commit('setCallStateAnswered')
-              context.dispatch("processCallAnswered")
+              context.dispatch("processNewCall")
 
               context.dispatch("showSoftphone")
               if (this.state.call.callStartDateTime === null) {

@@ -93,9 +93,10 @@ export default {
       if (this.leadIdToScreenpop && this.leadIdToScreenpop !== "") {
         this.$store.dispatch("sf_screenPopLead", this.leadIdToScreenpop);
       } else {
+        this.$store.dispatch("sf_ctiLeadLookup");
         this.showAlert(
           "danger",
-          "Sorry, a valid lead ID was not fetched for aganist this caller and virtual number"
+          "Lead ID not found, please wait while we fetch lead Details"
         );
       }
     },
