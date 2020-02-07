@@ -30,7 +30,7 @@
         size="sm"
         @click="sendTelephonyControlRequest('unhold')"
       >Unhold</mdb-btn>
-      <hr>
+      <hr />
       <mdb-btn class="mdb-color btn-block mb-3" size="sm" @click="forceScreenPop()">Manual Screenpop</mdb-btn>
     </mdb-col>
     <mdb-alert :color="loginAlert.color" v-if="loginAlert.show">{{loginAlert.message}}</mdb-alert>
@@ -90,17 +90,22 @@ export default {
   },
   methods: {
     forceScreenPop() {
-      if (this.leadIdToScreenpop && this.leadIdToScreenpop !== "") {
+      this.$store.commit("resetScreenpopFlag");
+      this.$store.dispatch("sf_ctiLeadLookup").then(() => {
         this.$store.dispatch("sf_screenPopLead", this.leadIdToScreenpop);
-      } else {
-        this.$store.dispatch("sf_ctiLeadLookup");
-        this.showAlert(
-          "danger",
-          "Lead ID not found, please wait while we fetch lead Details"
-        );
-      }
+      });
+
+      // if (this.leadIdToScreenpop && this.leadIdToScreenpop !== "") {
+
+      // } else {
+      //   this.$store.dispatch("sf_ctiLeadLookup");
+      //   this.showAlert(
+      //     "danger",
+      //     "Lead ID not found, please wait while we fetch lead Details"
+      //   );
+      // }
     },
-    
+
     sendTelephonyControlRequest(controlType) {
       this.icwsControlRequestParams.controlType = controlType;
       IcwsConnector.callControlRequest(this.icwsControlRequestParams)
@@ -152,7 +157,7 @@ export default {
         subscriptionId: this.$store.state.session.subscriptionId
       };
     },
-    
+
     callDirection() {
       return this.$store.state.call.direction;
     },
