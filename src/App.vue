@@ -36,7 +36,6 @@ export default {
   },
   beforeMount() {
     console.log("App(): lifecycle hook called -- beforeMount");
-
   },
   mounted() {
     console.log("CTI Connector App mounted");
@@ -116,7 +115,7 @@ export default {
     //       if (resp.data.responseCode === 0) {
     //         console.log("icwsCreateOutboundCall(): Successful", resp);
 
-    //         this.$store.commit("resetCallProcesses");
+    //         this.$store.commit("resetScreenpopFlag");
     //         this.$store.dispatch(
     //           "icws_updateAgentStatusMessage",
     //           "Outbound Call"
@@ -221,11 +220,14 @@ export default {
         newTimerState === TIMER_STATES.EVENTS.EXPIRED
       ) {
         console.log("timerState()/watch: Timer expired, so disposing the call");
-        this.$store.dispatch("isThisMasterTab").then(isMasterTab => {
-          if (isMasterTab) {
-            this.$store.dispatch("manualDisposeCall", "Available");
-          }
+        TabUtils.CallOnce("timerExpiredDisposeCall", () => {
+          this.$store.dispatch("manualDisposeCall", "Available");
         });
+        // this.$store.dispatch("isThisMasterTab").then(isMasterTab => {
+        //   if (isMasterTab) {
+        //     this.$store.dispatch("manualDisposeCall", "Available");
+        //   }
+        // });
       }
     }
   }
@@ -344,10 +346,10 @@ footer {
     bottom: 30px;
   }
   .fl_notification_bulb {
-  border: rgba(0, 0, 0, 0.25) 1px solid;
-  border-radius: 50%;
-  box-shadow: inset 0px 1px 3px 5px rgba(0, 0, 0, 0.75);
-}
+    border: rgba(0, 0, 0, 0.25) 1px solid;
+    border-radius: 50%;
+    box-shadow: inset 0px 1px 3px 5px rgba(0, 0, 0, 0.75);
+  }
   background: -webkit-gradient(
     left top,
     right top,

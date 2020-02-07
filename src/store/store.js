@@ -21,7 +21,10 @@ import { CONFIG } from '@/config.js'
 import parsePhone from "@/services/phoneParser.js";
 import IcwsConnector from "@/services/icwsConnector.js";
 import Utils from "@/services/utils.js";
-import TabManager from "@/services/TabManager.js"
+// import TabManager from "@/services/TabManager.js"
+// Connect to the channel named "agc_bus".
+const interTabBroadCastChannel = new BroadcastChannel('agc_bus');
+
 
 
 const vuexPersist = new VuexPersist({
@@ -216,22 +219,13 @@ export default new Vuex.Store({
       return state.tab.id
     },
 
-    // finalClockTime(state) {
-    //   let refTime = state.timer.refTime;
-    //   let currentTime = state.timer.currentTime;
-    //   let timeDifference = refTime - currentTime
-    //   var min = Math.floor((timeDifference / 1000 / 60) % 60);
-    //   let minutes = (min >= 10 ? min : "0" + min);
-    //   var sec = Math.ceil((timeDifference / 1000) % 60);
-    //   let seconds = sec >= 10 ? sec : "0" + sec;
-
-    //   return minutes + ":" + seconds;
-    // },
-    getClockTime(state) {
-      return state.timer.clockTime
-
+    getTabFocus(state) {
+      return state.tab.focus
     },
 
+    getClockTime(state) {
+      return state.timer.clockTime
+    },
 
     acwTimerTicks(state) {
       return state.timerControl.acwTimer.ticks
@@ -240,6 +234,7 @@ export default new Vuex.Store({
     getTimerState(state) {
       return state.timer.state
     },
+    
     getTimerControl(state) {
       console.log("called getTimerControl")
       return state.timer.control
@@ -389,6 +384,10 @@ export default new Vuex.Store({
       return state.agent.salesforceUserIdForAgent;
     },
 
+    getSfLeadId(state) {
+      return state.sfRecord.leadId
+    },
+
     /********************* getters: call **************************/
     interactionId(state) {
       return state.call.interactionId
@@ -461,7 +460,7 @@ export default new Vuex.Store({
       state.app.isScreenPopDone = true
     },
 
-    resetCallProcesses(state) {
+    resetScreenpopFlag(state) {
       state.app.isScreenPopDone = false
     },
 
@@ -948,18 +947,18 @@ export default new Vuex.Store({
       }
 
       let testFunctionForMasterTab = () => {
-            //locked "critical section" code - runs only once
-    TabUtils.CallOnce("lockname", function () { console.log("I run only once in multiple tabs"); }, 500);
-    //"timeout" above is optional (for how long to hold the lock - in milliseconds)
+        //locked "critical section" code - runs only once
+        // TabUtils.CallOnce("lockname", function () { console.log("I run only once in multiple tabs"); }, 500);
+        //"timeout" above is optional (for how long to hold the lock - in milliseconds)
 
-    //handle a broadcasted message
-    // TabUtils.OnBroadcastMessage("eventName", function (eventDataString) { DoSomething(); });
+        //handle a broadcasted message
+        // TabUtils.OnBroadcastMessage("eventName", function (eventDataString) { DoSomething(); });
 
-    //sends a broadcast message to all tabs, including the current tab too!
-    // TabUtils.BroadcastMessageToAllTabs("eventName", eventDataString);
+        //sends a broadcast message to all tabs, including the current tab too!
+        // TabUtils.BroadcastMessageToAllTabs("eventName", eventDataString);
 
-    //P.S. standard localStorage events are not being sent to current tab, only OTHER tabs.
-    //This component sends the message to ALL tabs
+        //P.S. standard localStorage events are not being sent to current tab, only OTHER tabs.
+        //This component sends the message to ALL tabs
         // dispatch('isThisMasterTab').then((isMasterTab) => {
         //   console.log("isThisMasterTab called for tab " + getters.tabId + " returned " + isMasterTab);
         // })
@@ -1194,12 +1193,41 @@ export default new Vuex.Store({
       context.dispatch("sf_getUserDetails");
       context.dispatch("sfNavChangeListener");
       //context.dispatch("showSoftphone");
-      context.dispatch('registerTab')
+      // context.dispatch('registerTab')
       if (context.getters.appState === APP_STATES.AFTER_CALL_WORK) {
         context.dispatch('resumeClockTimer')
       }
 
-      TabManager.init()
+
+
+      window.onfocus = () => {
+        context.dispatch("setTabFocus", true)
+      };
+
+      window.onblur = function () {
+        context.dispatch("setTabFocus", false)
+      };
+
+      // Send a message on "my_bus".
+      // interTabBroadCastChannel.postMessage('This is a test message.');
+
+      // Listen for messages on "my_bus".
+      interTabBroadCastChannel.onmessage = (e) => {
+        console.log('Received Message ' + JSON.stringify(e.data));
+
+        if (e.data.cause === "performScreenpop" && (document.visibilityState === "visible" || context.getters.getTabFocus === true)) {
+
+
+          context.dispatch('screenPopObject', e.data.record)
+        } else {
+          console.log("recieved message but skipping since it's not for performing screenpop OR this tab is not in foreground ")
+        }
+      };
+
+      // Close the channel when you're done.
+      // interTabBroadCastChannel.close();
+
+      // TabManager.init()
 
     },
     processConnectionError(context) {
@@ -1209,7 +1237,7 @@ export default new Vuex.Store({
       console.log("processConnectionRestored() entered action")
       if (Utils.validateJson(context.getters.sessionParams)) {
         let resp = await context.dispatch('checkAgentLoginStatusFromIcws')
-        console.log("checkAgentLoginStatusFromIcws() dispatch finished. resp=", resp);
+        console.log("checkAgentLoginStatusFromIcws() dispatch finished. resp=" + JSON.stringify(resp));
 
         context.dispatch("enableClickToDial");
 
@@ -1233,8 +1261,8 @@ export default new Vuex.Store({
       if (Utils.validateJson(context.getters.socketRequestParams)) {
         this._vm.$socket.emit("JOIN_ROOM", context.getters.socketRequestParams, response => {
           console.log(
-            "sendJoinRoomSocketEvent: sent successfully: ack=",
-            response
+            "sendJoinRoomSocketEvent: sent successfully: ack=" +
+            JSON.stringify(response)
           );
         });
       } else {
@@ -1246,7 +1274,7 @@ export default new Vuex.Store({
 
     sfNavChangeListener({ getters }) {
       var listener = function (payload) {
-        console.log('sfNavChangeListener() Navigation change occurred. Payload: ', payload);
+        console.log('sfNavChangeListener() Navigation change occurred. Payload: ' + JSON.stringify(payload));
         let lsNavState = localStorage.getItem('navState');
         if (lsNavState) {
           let navState = JSON.parse(lsNavState);
@@ -1277,13 +1305,13 @@ export default new Vuex.Store({
           return IcwsConnector.getAgentLoginState(headers).then(
             agentStateResp => {
               console.log(
-                "checkAgentLoginStatusFromIcws() request successful. resp=",
-                agentStateResp
+                "checkAgentLoginStatusFromIcws() request successful. resp=" +
+                JSON.stringify(agentStateResp)
               );
               resolve(agentStateResp)
             }
           ).catch(err => {
-            console.log("checkAgentLoginStatusFromIcws() request failed. error=", err)
+            console.log("checkAgentLoginStatusFromIcws() request failed. error=" + JSON.stringify(err))
             reject(err)
           });
         }
@@ -1330,12 +1358,7 @@ export default new Vuex.Store({
 
             if (payload.objectType === "Lead" && payload.recordId) {
               commit("setClickToDialSfRecord", payload);
-              console.log(
-                "onClickToDial(): payload.objectType=",
-                payload.objectType,
-                " payload.recordId=",
-                payload.recordId
-              );
+              console.log("onClickToDial(): payload=" + JSON.stringify(payload));
 
               if (payload.number && payload.number !== "") {
                 console.log(
@@ -1441,7 +1464,7 @@ export default new Vuex.Store({
             if (resp.data.responseCode === 0) {
               console.log("icwsCreateOutboundCall(): Successful", resp);
 
-              commit("resetCallProcesses");
+              commit("resetScreenpopFlag");
               dispatch("icws_updateAgentStatusMessage", "Outbound Call");
 
             } else {
@@ -1514,8 +1537,8 @@ export default new Vuex.Store({
     },
 
     isThisMasterTab({ getters }) {
-      console.log("isThisSelectedTab(): result=" + TabManager.isThisSelectedTab())
-      console.log("isThisActiveTab(): result=" + TabManager.isThisActiveTab())
+      // console.log("isThisSelectedTab(): result=" + TabManager.isThisSelectedTab())
+      // console.log("isThisActiveTab(): result=" + TabManager.isThisActiveTab())
       console.log("isThisMasterTab(): entered action")
       let isMasterTab = false
       let tabCount, tabArray, tabState, navState, visibleTabCount
@@ -1548,13 +1571,13 @@ export default new Vuex.Store({
               console.log("isThisMasterTab(): for navState, navKey=", navKey, ",currentTabId=", currentTabId, ", navState[key]=", navState[navKey])
               this.dispatch('sendLogsToServer', "isThisMasterTab(): for navState, visibleTabCount =" + visibleTabCount + ", navKey=" + navKey + ",currentTabId=" + currentTabId + ", navState[key]=" + navState[navKey])
 
-              if (navState[navKey] === 'visible'){
-                visibleNavCount=visibleNavCount+1;
+              if (navState[navKey] === 'visible') {
+                visibleNavCount = visibleNavCount + 1;
                 isMasterTab = (navKey === currentTabId)
               }
             }
-            if(visibleNavCount===0){
-              if(currentTabId ===navState[navState.length]){
+            if (visibleNavCount === 0) {
+              if (currentTabId === navState[navState.length]) {
                 isMasterTab = true;
                 console.log("setting isMasterTab as true since this is the latest tab");
               }
@@ -1580,10 +1603,11 @@ export default new Vuex.Store({
         * Event Handler for Call Alerting Socket Event
         ****************************************************/
     async processCallAlerting({ getters, dispatch, commit }) {
-      console.log("processCallAlerting(): action entered. dispatching isThisMasterTab")
-      let isMasterTab = await dispatch('isThisMasterTab')
-      console.log("processCallAlerting(): isMasterTab=", isMasterTab)
-      TabUtils.CallOnce("processCallAlerting", function () { 
+      // console.log("processCallAlerting(): action entered. dispatching isThisMasterTab")
+      // let isMasterTab = await dispatch('isThisMasterTab')
+      // console.log("processCallAlerting(): isMasterTab=", isMasterTab)
+      // eslint-disable-next-line no-undef
+      TabUtils.CallOnce("processCallAlerting", function () {
 
         if (getters.isCampaignCall) {
           console.log("if condition for isCampaignCall");
@@ -1604,7 +1628,7 @@ export default new Vuex.Store({
         } else {
           console.log("mounted(): call is neither inbound nor outbound");
         }
-       }, 2000);
+      }, 2000);
       /**/
       // else {
       //   console.log("processCallAlerting(): skipping processNewCall since this tab DOES NOT have the min count")
@@ -1616,10 +1640,11 @@ export default new Vuex.Store({
     * Event Handler for Call Answered Socket Event
     ****************************************************/
     async processNewCall({ getters, dispatch, commit }) {
-      console.log("processNewCall(): action entered. dispatching isThisMasterTab")
-      let isMasterTab = await dispatch('isThisMasterTab')
-      console.log("processNewCall(): isMasterTab=", isMasterTab)
-      TabUtils.CallOnce("processCallAlerting", function () { 
+      // console.log("processNewCall(): action entered. dispatching isThisMasterTab")
+      // let isMasterTab = await dispatch('isThisMasterTab')
+      // console.log("processNewCall(): isMasterTab=", isMasterTab)
+      // eslint-disable-next-line no-undef
+      TabUtils.CallOnce("processCallAlerting", function () {
 
         if (getters.isCampaignCall) {
           console.log("if condition for isCampaignCall");
@@ -1641,7 +1666,7 @@ export default new Vuex.Store({
         } else {
           console.log("mounted(): call is neither inbound nor outbound");
         }
-      }); 
+      });
       // else {
       //   console.log("processNewCall(): skipping processNewCall since this tab DOES NOT have the min count")
       // }
@@ -1656,13 +1681,13 @@ export default new Vuex.Store({
     processOutboundCall({ getters, dispatch }) {
       if (
         getters.clickToDialRequest.recordId &&
-        getters.clickToDialRequest.objectType
+        getters.clickToDialRequest.objectType &&  getters.clickToDialRequest.objectType === "Lead"
       ) {
         let record = {
           id: getters.clickToDialRequest.recordId,
           type: getters.clickToDialRequest.objectType
         }
-        dispatch('screenPopObject', record);
+        dispatch('sf_screenPopLead', record.id);
       } else {
         console.log("processOutboundCall() Click To Dial did not return a valid record ID and record Type. record=", getters.clickToDialRequest);
       }
@@ -1887,6 +1912,11 @@ export default new Vuex.Store({
         id: leadId,
         type: "Lead"
       }
+      let broadcastmessage = {
+        cause: "performScreenpop",
+        record: record
+      }
+      interTabBroadCastChannel.postMessage(broadcastmessage);
       dispatch('screenPopObject', record)
     },
 
@@ -1895,9 +1925,10 @@ export default new Vuex.Store({
      ****************************************************/
 
     screenPopObject(context, record) {
+      console.log("screenPopObject(): action dispatched, proceeding for record=" + JSON.stringify())
       if (!context.getters.isScreenPopDone) {
         context.commit('screenPopDone')
-        console.log("sf_screenPopLead() : entered the function. record=" + JSON.stringify(record));
+        console.log("screenPopObject() : entered the function. record=" + JSON.stringify(record));
         context.dispatch("sendLogsToServer", "sf_screenPopLead() : entered the function. record=" + JSON.stringify(record));
         // eslint-disable-next-line no-undef
         sforce.opencti.screenPop({
@@ -1911,7 +1942,7 @@ export default new Vuex.Store({
         });
         var callback = response => {
           if (response.success) {
-            console.log("sf_screenPopLead() successful. returnValue:", response.returnValue);
+            console.log("sf_screenPopLead() successful. returnValue:" + JSON.stringify(response.returnValue));
           } else {
             console.error("sf_screenPopLead() failed. error:" + JSON.stringify(response.errors));
           }
@@ -1974,10 +2005,10 @@ export default new Vuex.Store({
         console.log("processAcwStarted() entered function/try")
         dispatch('showSoftphone')
         dispatch('startClockTimer')
-        if (await dispatch('isThisMasterTab') === true) {
-          console.log("processAcwStarted(): isThisMasterTab is true")
-          // commit('startAcwTimer')
+        // eslint-disable-next-line no-undef
+        TabUtils.CallOnce("processAcwStarted", async () => {
 
+          console.log("processAcwStarted(): isThisMasterTab is true")
           if (getters.isOutboundCall || getters.isCampaignCall) {
             dispatch('icws_updateAgentStatusMessage', "ACW_ORL")
           } else if (getters.getCallTerminationType !== "Answered") {
@@ -2012,11 +2043,12 @@ export default new Vuex.Store({
 
 
 
-        } else {
-          //dispatch('resumeClockTimer')
-          console.error("processAcwStarted(): skipping acw started since this is not the master tab")
+        });
+        // else {
+        //   //dispatch('resumeClockTimer')
+        //   console.error("processAcwStarted(): skipping acw started since this is not the master tab")
 
-        }
+        // }
 
       } catch (error) {
         console.error(error)
@@ -2513,7 +2545,7 @@ export default new Vuex.Store({
       if (payload.userStatusList.length > 0) {
         let agentStatus = payload.userStatusList[0].statusId
         if (agentStatus) {
-          
+
           context.commit('updateAgentStatus', agentStatus)
         }
       }
@@ -2702,7 +2734,7 @@ export default new Vuex.Store({
             if (context.getters.appState !== APP_STATES.CALL_RINGING) {
 
 
-              context.commit('resetCallProcesses')
+              context.commit('resetScreenpopFlag')
               context.commit('setCallStateAlerting')
               context.dispatch("processNewCall")
 
@@ -2727,7 +2759,7 @@ export default new Vuex.Store({
           case CALL_STATES.CONNECTED:
             console.log("SOCKET_queueContentsMessage() Socket message received for callState = " + callState)
             if (context.getters.appState !== APP_STATES.CALL_ANSWERED) {
-              context.commit('resetCallProcesses')
+              context.commit('resetScreenpopFlag')
               context.commit('setCallStateAnswered')
               context.dispatch("processNewCall")
 
