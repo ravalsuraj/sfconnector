@@ -2553,11 +2553,11 @@ export default new Vuex.Store({
       let timer = context.getters.getTimer('agentStateTimer');
       if (timer) {
         console.log("SOCKET_userStatusMessage(): agentStateTimer exists, so starting the timer")
-        context.dispatch("startTimer", ["agentStateTimer", payload.timestamp]);
+        context.dispatch("startTimer", ["agentStateTimer", Date.now()]);
       } else {
         console.log("SOCKET_userStatusMessage(): adding and calling startTimer() since timer does not exist")
         context.dispatch("addUpTimer", "agentStateTimer");
-        context.dispatch("startTimer", ["agentStateTimer", payload.timestamp]);
+        context.dispatch("startTimer", ["agentStateTimer", Date.now()]);
 
       }
     },
