@@ -47,11 +47,37 @@
 
         <span class="spinner-border text-info float-left" v-if="spinner.show"></span>
         <div class="btn-group text-center my-2 w-100">
-          <mdb-btn class="btn white-text unique-color mr-3" size @click="performAgentLogin">Log in</mdb-btn>
+          <mdb-btn
+            class="btn white-text unique-color mr-3"
+            size
+            @click="performAgentLogin('LOCAL')"
+          >Log in</mdb-btn>
 
-          <!-- <mdb-btn class="btn white-text special-color" @click="checkMasterTab">Test Button</mdb-btn> -->
+          <mdb-btn
+            color="danger"
+            class="btn white-text mr-3"
+            @click="showRemoteLoginModal=true"
+          >Remote Log in</mdb-btn>
+          <mdb-modal
+            class="pt-5"
+            v-if="showRemoteLoginModal"
+            @close="showRemoteLoginModal = false"
+            elegant
+          >
+            <mdb-modal-header>
+              <mdb-modal-title>Remote Login</mdb-modal-title>
+            </mdb-modal-header>
+            <mdb-modal-body>
+              <span
+                class="h6"
+              >Are you sure you want to log-in remotely? Please ensure the "Station ID" field has your mobile number before continuing</span>
+            </mdb-modal-body>
+            <mdb-modal-footer>
+              <mdb-btn color="secondary" @click.native="showRemoteLoginModal = false">Cancel</mdb-btn>
+              <mdb-btn color="danger" @click.native="performAgentLogin('REMOTE')">Login Remotely</mdb-btn>
+            </mdb-modal-footer>
+          </mdb-modal>
         </div>
-        <!-- <mdb-alert>{{alertBanner.message}}</mdb-alert> -->
 
         <mdb-alert
           @closeAlert="hideAlert"
@@ -68,7 +94,18 @@
 </template>
 
 <script>
-import { mdbAlert, mdbRow, mdbCol, mdbBtn, mdbInput } from "mdbvue";
+import {
+  mdbAlert,
+  mdbRow,
+  mdbCol,
+  mdbBtn,
+  mdbInput,
+  mdbModal,
+  mdbModalHeader,
+  mdbModalTitle,
+  mdbModalBody,
+  mdbModalFooter
+} from "mdbvue";
 
 import IcwsConnector from "@/services/icwsConnector.js";
 import Utils from "@/services/utils.js";
@@ -80,7 +117,12 @@ export default {
     mdbRow,
     mdbCol,
     mdbBtn,
-    mdbInput
+    mdbInput,
+    mdbModal,
+    mdbModalHeader,
+    mdbModalTitle,
+    mdbModalBody,
+    mdbModalFooter
   },
   mounted() {
     //this.$store.dispatch("sf_getUserDetails");
@@ -117,7 +159,8 @@ export default {
       },
       spinner: {
         show: false
-      }
+      },
+      showRemoteLoginModal: false
     };
   },
 
@@ -140,13 +183,13 @@ export default {
     },
     handleEnterKeyForLogin(e) {
       if (e.keyCode === 13) {
-        this.performAgentLogin();
+        this.performAgentLogin("LOCAL");
       }
     },
     agentLoginBtnClicked() {
       this.$store.dispatch("onAgentLoginBtnClicked", this.inpCredentials);
     },
-    performAgentLogin() {
+    performAgentLogin(stationType) {
       console.log("agentLoginBtnClicked(): onClick function called");
       //show the loading spinner
       this.showSpinner();
@@ -161,6 +204,7 @@ export default {
         userId: this.inpCredentials.userId,
         station: this.inpCredentials.station,
         password: this.inpCredentials.password,
+        stationType: stationType,
         subscriptionId: generatedSubscriptionId,
         auxCodes: []
       };

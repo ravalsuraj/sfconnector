@@ -43,7 +43,8 @@ export default {
             role: 'PMT',
             userId: request.userId,
             password: request.password,
-            station: request.station
+            station: request.station,
+            stationType: request.stationType
         };
 
         console.log("agentLoginRequest(): sending request. header=", header)
