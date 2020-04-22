@@ -224,6 +224,10 @@ export default new Vuex.Store({
       return state.tab.focus
     },
 
+    getIsLoading(state) {
+      return state.app.isLoading
+    },
+
     getClockTime(state) {
       return state.timer.clockTime
     },
@@ -455,7 +459,9 @@ export default new Vuex.Store({
     },
     /********************* mutations: app **************************/
 
-
+    UPDATE_LOADING_STATUS(state, isLoadingStatus) {
+      state.app.isLoading = isLoadingStatus;
+    },
 
     screenPopDone(state) {
       state.app.isScreenPopDone = true
@@ -866,6 +872,16 @@ export default new Vuex.Store({
         console.log("sent logs to server, response:", response)
       })
     },
+
+    addWindowCloseAlert() {
+      // window.addEventListener("beforeunload", (e) => {
+      //   var confirmationMessage = "Please wait, we are processing the call. ";
+
+      //   (e || window.event).returnValue = confirmationMessage; //Gecko + IE
+      //   return confirmationMessage;                            //Webkit, Safari, Chrome
+      // });
+    },
+
     registerTab({ getters, commit, dispatch }) {
 
       /*********************  Periodically check if tab is in foreground  ****************************/
@@ -1187,10 +1203,15 @@ export default new Vuex.Store({
     },
 
     processOnAppMounted(context) {
-      // window.onbeforeunload = function () {
-      //   return "Please make sure all processing is complete before attempting to refresh";
-      // }
+      let cont = this;
+      window.onbeforeunload = function () {
+        if (context.getters.getIsLoading === true) {
+          return "Please make sure all processing is complete before attempting to refresh";
+        }
+
+      }
       //Get SF UserId , Agent Id, Station, and Password, from salesforce records
+      context.dispatch("addWindowCloseAlert");
       context.dispatch("sf_getUserDetails");
       context.dispatch("sfNavChangeListener");
       //context.dispatch("showSoftphone");
@@ -1645,8 +1666,9 @@ export default new Vuex.Store({
       // let isMasterTab = await dispatch('isThisMasterTab')
       // console.log("processNewCall(): isMasterTab=", isMasterTab)
       // eslint-disable-next-line no-undef
+      
       TabUtils.CallOnce("processCallAlerting", function () {
-
+        commit('UPDATE_LOADING_STATUS', true);
         if (getters.isCampaignCall) {
           console.log("if condition for isCampaignCall");
           dispatch('processCampaignCall')
@@ -1682,7 +1704,7 @@ export default new Vuex.Store({
     processOutboundCall({ getters, dispatch }) {
       if (
         getters.clickToDialRequest.recordId &&
-        getters.clickToDialRequest.objectType &&  getters.clickToDialRequest.objectType === "Lead"
+        getters.clickToDialRequest.objectType && getters.clickToDialRequest.objectType === "Lead"
       ) {
         let record = {
           id: getters.clickToDialRequest.recordId,
@@ -1929,6 +1951,7 @@ export default new Vuex.Store({
       console.log("screenPopObject(): action dispatched, proceeding for record=" + JSON.stringify())
       if (!context.getters.isScreenPopDone) {
         context.commit('screenPopDone')
+        context.commit("UPDATE_LOADING_STATUS", false)
         console.log("screenPopObject() : entered the function. record=" + JSON.stringify(record));
         context.dispatch("sendLogsToServer", "sf_screenPopLead() : entered the function. record=" + JSON.stringify(record));
         // eslint-disable-next-line no-undef
@@ -2010,7 +2033,7 @@ export default new Vuex.Store({
         dispatch('startClockTimer')
         // eslint-disable-next-line no-undef
         TabUtils.CallOnce("processAcwStarted", async () => {
-
+          commit('UPDATE_LOADING_STATUS', true)
           console.log("processAcwStarted(): isThisMasterTab is true")
           if (getters.isOutboundCall || getters.isCampaignCall) {
             dispatch('icws_updateAgentStatusMessage', "ACW_ORL")
@@ -2348,6 +2371,7 @@ export default new Vuex.Store({
       dispatch('sendLogsToServer', param)
       param.callback = response => {
         dispatch('sendLogsToServer', response)
+        commit('UPDATE_LOADING_STATUS', false)
         if (response.success) {
           console.log(
             "sf_insertCallRecord(): response successful. response=",
