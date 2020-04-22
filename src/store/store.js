@@ -68,6 +68,7 @@ function initialState() {
       previousState: APP_STATES.LOGGED_OUT,
       isForcedLogout: false,
       isScreenPopDone: false,
+      isLoading: false
     },
     session: {
       sessionId: null,
@@ -234,7 +235,7 @@ export default new Vuex.Store({
     getTimerState(state) {
       return state.timer.state
     },
-    
+
     getTimerControl(state) {
       console.log("called getTimerControl")
       return state.timer.control
@@ -1981,6 +1982,7 @@ export default new Vuex.Store({
             commit('setCallTerminationType', 'Not Answered')
             commit('setCallDispositionComments', "Campaign Call not answerable by agent. Another attempt will be made by the dialer")
           }
+
         }
         if (getters.getCallEndTime) {
           commit('setCallStartTime', getters.getCallEndTime)
@@ -1991,6 +1993,7 @@ export default new Vuex.Store({
         const duration = 0;
         commit('setCallDuration', duration.toFixed(2));
       }
+
       commit('setCallStateDropped')
       dispatch('processAcwStarted')
     },
@@ -2034,7 +2037,7 @@ export default new Vuex.Store({
           * if the call was not answerable (for example if the call went to alerting),
           * do not insert the call, since the call will be inserted through VCC Admin
           *************************************************************************************/
-          if (getters.isCampaignCall && getters.getCallTerminationType === "Not Answered") {
+          if (getters.isCampaignCall && getters.getCallTerminationType === "Not Answered" || (getters.isInboundCall && getters.getCallTerminationType !== 'Answered')) {
             console.log("processAcwStarted(): skipping insert call, since call was not answerable")
             dispatch('sendLogsToServer', "processAcwStarted(): skipping insert call, since call was not answerable")
           } else {
@@ -2736,7 +2739,7 @@ export default new Vuex.Store({
 
               context.commit('resetScreenpopFlag')
               context.commit('setCallStateAlerting')
-              context.dispatch("processNewCall")
+              //context.dispatch("processNewCall")
 
               if (this.state.call.callStartDateTime === null) {
                 this.commit('setCallStartTime', payload.timestamp)
